@@ -1,0 +1,76 @@
+# =============================================================================
+# LIST_COLOR = [
+#     "#ff8c00","#0000ff","#808000","#ff0000","#00ffff",
+#     "#f0ffff","#f5f5dc","#000000","#a52a2a","#00ffff",
+#     "#00008b","#008b8b","#a9a9a9","#006400","#bdb76b",
+#     "#8b008b","#556b2f","#9932cc","#8b0000","#e9967a",
+#     "#9400d3","#ff00ff","#ffd700","#008000","#4b0082",
+#     "#f0e68c","#add8e6","#e0ffff","#90ee90","#d3d3d3",
+#     "#ffb6c1","#ffffe0","#00ff00","#ff00ff","#800000",
+#     "#000080","#808000","#ffa500","#ffc0cb","#800080",
+#     "#800080","#c0c0c0","#ffffff","#ffff00"]
+# =============================================================================
+import pandas as pd
+import numpy as np
+from aeon.datasets import load_classification
+# 将标记引入到了这里 
+LIST_COLOR = [
+    "#ff8c00","#0000ff","#808000","#ff0000","#00ffff",
+    "#f0ffff","#f5f5dc","#000000","#a52a2a","#00ffff",
+    "#00008b","#008b8b","#a9a9a9","#006400","#bdb76b",
+    "#8b008b","#556b2f","#9932cc","#8b0000","#e9967a",
+    "#9400d3","#ff00ff","#ffd700","#008000","#4b0082",
+    "#f0e68c","#add8e6","#e0ffff","#90ee90","#d3d3d3",
+    "#ffb6c1","#ffffe0","#00ff00","#ff00ff","#800000",
+    "#000080","#808000","#ffa500","#ffc0cb","#800080",
+    "#800080","#c0c0c0","#ffffff","#ffff00"]
+ 
+def fetch_ucr_dataset(dataset,path,variable_length=False):
+    if variable_length:
+        path += '{}/'.format(dataset)
+        with open(path + "{}_TRAIN.tsv".format(dataset),'r') as f:
+            train = f.readlines()
+        train = [train_line.replace('\n','') for train_line in train]
+        labels_train = []
+        ts_train = []
+        for train_line in train:
+            val = train_line.split('\t')
+            labels_train.append(int(val[0]))
+            ts_train.append(np.array([float(v) for v in val[1:]]))
+            ts_train[-1] = ts_train[-1][~np.isnan(ts_train[-1])]
+
+        with open(path + "{}_TEST.tsv".format(dataset),'r') as f:
+            test = f.readlines()
+        test = [test_line.replace('\n','') for test_line in test]
+        labels_test = []
+        ts_test = []
+        for test_line in test:
+            val = test_line.split('\t')
+            labels_test.append(int(val[0]))
+            ts_test.append(np.array([float(v) for v in val[1:]]))
+            ts_test[-1] = ts_test[-1][~np.isnan(ts_test[-1])]
+        return {'data_train':ts_train,'target_train':np.array(labels_train), 'data_test':ts_test, 'target_test':np.array(labels_test)}
+
+    else:
+        path += '{}/'.format(dataset)
+        train_data = pd.read_csv(path + "{}_TRAIN.tsv".format(dataset),sep='\t',header=None)
+        target_train = np.array(train_data[0].values)
+        train_data = train_data.drop(0,axis=1)
+        train_data = train_data.fillna(0)
+        data_train = np.array(train_data.values)
+        data_train = (data_train - np.mean(data_train,axis=1,keepdims=True))/(np.std(data_train,axis=1,keepdims=True))
+
+        test_data = pd.read_csv(path + "{}_TEST.tsv".format(dataset),sep='\t',header=None)
+        target_test = np.array(test_data[0].values)
+        test_data = test_data.drop(0,axis=1)
+        test_data = test_data.fillna(0)
+        data_test = np.array(test_data.values)
+        data_test = (data_test - np.mean(data_test,axis=1,keepdims=True))/(np.std(data_test,axis=1,keepdims=True))
+        return {'data_train':data_train,'target_train':target_train, 'data_test':data_test, 'target_test':target_test}
+
+def fetch_ucr_dataset_online(dataset):
+    
+    dataCof = load_classification("Trace")
+    X = np.squeeze(dataCof[0], axis=1)
+    y = dataCof[1].astype(int)
+    return X, y
